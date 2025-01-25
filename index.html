@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Animal Memory Game</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0ff;
+            margin: 0;
+        }
+        .game-container {
+            text-align: center;
+            background-color: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 100px);
+            gap: 10px;
+            justify-content: center;
+        }
+        .card {
+            width: 100px;
+            height: 100px;
+            background-color: #4CAF50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 10px;
+        }
+        .card.flipped {
+            font-size: 50px;
+            background-color: #87CEEB;
+        }
+        .card.matched {
+            background-color: #90EE90;
+            cursor: default;
+        }
+        #score, #timer {
+            font-size: 24px;
+            margin: 10px 0;
+        }
+        #start-btn, #reset-btn {
+            background-color: #FF6347;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 10px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>Animal Memory Game</h1>
+        <div id="timer">Get Ready!</div>
+        <div id="score">Matches: 0/6</div>
+        <div class="game-grid" id="game-grid"></div>
+        <button id="start-btn">Start Game</button>
+        <button id="reset-btn" style="display:none;">Reset Game</button>
+    </div>
+
+    <script>
+        const animals = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊'];
+        const duplicatedAnimals = [...animals, ...animals];
+        let flippedCards = [];
+        let matchedPairs = 0;
+        let canFlip = false;
+        let gameTimer;
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function createBoard() {
+            const gameGrid = document.getElementById('game-grid');
+            gameGrid.innerHTML = '';
+            const shuffledAnimals = shuffleArray(duplicatedAnimals);
+
+            shuffledAnimals.forEach((animal, index) => {
+                const card = document.createElement('div');
+                card.classList.add('card');
+                card.dataset.animal = animal;
+                card.textContent = animal;
+                card.addEventListener('click', flipCard);
+                gameGrid.appendChild(card);
+            });
+        }
+
+        function startGame() {
+            document.getElementById('start-btn').style.display = 'none';
+            document.getElementById('reset-btn').style.display = 'inline-block';
+            
+            // Show all cards for 2 seconds
+            const cards = document.querySelectorAll('.card');
+            cards.forEach(card => card.classList.add('flipped'));
+
+            const timerElem = document.getElementById('timer');
+            let countdown = 2;
+            timerElem.textContent = `Game starts in: ${countdown}s`;
+
+            const countdownInterval = setInterval(() => {
+                countdown--;
+                timerElem.textContent = `Game starts in: ${countdown}s`;
+
+                if (countdown === 0) {
+                    clearInterval(countdownInterval);
+                    cards.forEach(card => {
+                        card.classList.remove('flipped');
+                        card.textContent = '';
+                    });
+                    canFlip = true;
+                    timerElem.textContent = 'Good Luck!';
+                    startGameTimer();
+                }
+            }, 1000);
+        }
+
+        function startGameTimer() {
+            let timeLeft = 60;
+            const timerElem = document.getElementById('timer');
+            
+            gameTimer = setInterval(() => {
+                timeLeft--;
+                timerElem.textContent = `Time Left: ${timeLeft}s`;
+
+                if (timeLeft === 0) {
+                    clearInterval(gameTimer);
+                    canFlip = false;
+                    alert('Time is up! Try again.');
+                }
+
+                if (matchedPairs === 6) {
+                    clearInterval(gameTimer);
+                }
+            }, 1000);
+        }
+
+        function flipCard() {
+            if (!canFlip || this.classList.contains('matched') || flippedCards.includes(this)) return;
+
+            this.classList.add('flipped');
+            this.textContent = this.dataset.animal;
+            flippedCards.push(this);
+
+            if (flippedCards.length === 2) {
+                canFlip = false;
+                setTimeout(checkMatch, 1000);
+            }
+        }
+
+        function checkMatch() {
+            const [card1, card2] = flippedCards;
+            const isMatch = card1.dataset.animal === card2.dataset.animal;
+
+            if (isMatch) {
+                card1.classList.add('matched');
+                card2.classList.add('matched');
+                matchedPairs++;
+                document.getElementById('score').textContent = `Matches: ${matchedPairs}/6`;
+            } else {
+                card1.classList.remove('flipped');
+                card2.classList.remove('flipped');
+                card1.textContent = '';
+                card2.textContent = '';
+            }
+
+            flippedCards = [];
+            canFlip = true;
+
+            if (matchedPairs === 6) {
+                clearInterval(gameTimer);
+                setTimeout(() => {
+                    alert('Congratulations! You won the game!');
+                }, 500);
+            }
+        }
+
+        document.getElementById('start-btn').addEventListener('click', () => {
+            createBoard();
+            startGame();
+        });
+
+        document.getElementById('reset-btn').addEventListener('click', () => {
+            clearInterval(gameTimer);
+            matchedPairs = 0;
+            document.getElementById('score').textContent = 'Matches: 0/6';
+            document.getElementById('timer').textContent = 'Get Ready!';
+            document.getElementById('start-btn').style.display = 'inline-block';
+            document.getElementById('reset-btn').style.display = 'none';
+            canFlip = false;
+            createBoard();
+        });
+    </script>
+</body>
+</html>
