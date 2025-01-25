@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Animal Memory Game</title>
+    <title>Learning Memory Game</title>
     <style>
         body {
             font-family: 'Comic Sans MS', cursive;
@@ -39,18 +39,18 @@
             border-radius: 10px;
         }
         .card.flipped {
-            font-size: 50px;
+            font-size: 40px;
             background-color: #87CEEB;
         }
         .card.matched {
             background-color: #90EE90;
             cursor: default;
         }
-        #score, #timer {
+        #score, #timer, #level, #points {
             font-size: 24px;
             margin: 10px 0;
         }
-        #start-btn, #reset-btn {
+        #start-btn, #reset-btn, #next-level-btn {
             background-color: #FF6347;
             border: none;
             color: white;
@@ -67,17 +67,34 @@
 </head>
 <body>
     <div class="game-container">
-        <h1>Animal Memory Game</h1>
+        <h1>Learning Memory Game</h1>
+        <div id="level">Level: 1</div>
+        <div id="points">Points: 0/12</div>
         <div id="timer">Get Ready!</div>
         <div id="score">Matches: 0/6</div>
         <div class="game-grid" id="game-grid"></div>
         <button id="start-btn">Start Game</button>
         <button id="reset-btn" style="display:none;">Reset Game</button>
+        <button id="next-level-btn" style="display:none;">Next Level</button>
     </div>
 
     <script>
-        const animals = ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊'];
-        const duplicatedAnimals = [...animals, ...animals];
+        const levelData = [
+            { theme: 'Animals', items: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊'] },
+            { theme: 'Fruits', items: ['🍎', '🍐', '🍊', '🍋', '🍌', '🍉'] },
+            { theme: 'Vegetables', items: ['🥕', '🥦', '🥬', '🥒', '🌽', '🍅'] },
+            { theme: 'Words', items: ['Cat', 'Dog', 'Sun', 'Run', 'Fun', 'Top'] },
+            { theme: 'Colors', items: ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange'] },
+            { theme: 'Shapes', items: ['⭕', '🔺', '🔲', '🔷', '🔶', '🟥'] },
+            { theme: 'Transportation', items: ['🚗', '🚲', '🚁', '🚢', '🚊', '🏍️'] },
+            { theme: 'Family', items: ['👨', '👩', '👧', '👦', '👵', '👴'] },
+            { theme: 'Weather', items: ['☀️', '🌧️', '❄️', '🌈', '🌪️', '🌤️'] },
+            { theme: 'Sports', items: ['⚽', '🏀', '🏈', '🏓', '🏒', '🎾'] }
+        ];
+
+        let currentLevel = 0;
+        let totalPoints = 0;
+        let levelPoints = 0;
         let flippedCards = [];
         let matchedPairs = 0;
         let canFlip = false;
@@ -94,23 +111,26 @@
         function createBoard() {
             const gameGrid = document.getElementById('game-grid');
             gameGrid.innerHTML = '';
-            const shuffledAnimals = shuffleArray(duplicatedAnimals);
+            const currentLevelData = levelData[currentLevel];
+            const duplicatedItems = [...currentLevelData.items, ...currentLevelData.items];
+            const shuffledItems = shuffleArray(duplicatedItems);
 
-            shuffledAnimals.forEach((animal, index) => {
+            shuffledItems.forEach((item) => {
                 const card = document.createElement('div');
                 card.classList.add('card');
-                card.dataset.animal = animal;
-                card.textContent = animal;
+                card.dataset.item = item;
+                card.textContent = item;
                 card.addEventListener('click', flipCard);
                 gameGrid.appendChild(card);
             });
+
+            document.getElementById('level').textContent = `Level: ${currentLevel + 1} - ${currentLevelData.theme}`;
         }
 
         function startGame() {
             document.getElementById('start-btn').style.display = 'none';
             document.getElementById('reset-btn').style.display = 'inline-block';
             
-            // Show all cards for 2 seconds
             const cards = document.querySelectorAll('.card');
             cards.forEach(card => card.classList.add('flipped'));
 
@@ -148,10 +168,6 @@
                     canFlip = false;
                     alert('Time is up! Try again.');
                 }
-
-                if (matchedPairs === 6) {
-                    clearInterval(gameTimer);
-                }
             }, 1000);
         }
 
@@ -159,7 +175,7 @@
             if (!canFlip || this.classList.contains('matched') || flippedCards.includes(this)) return;
 
             this.classList.add('flipped');
-            this.textContent = this.dataset.animal;
+            this.textContent = this.dataset.item;
             flippedCards.push(this);
 
             if (flippedCards.length === 2) {
@@ -170,13 +186,17 @@
 
         function checkMatch() {
             const [card1, card2] = flippedCards;
-            const isMatch = card1.dataset.animal === card2.dataset.animal;
+            const isMatch = card1.dataset.item === card2.dataset.item;
 
             if (isMatch) {
                 card1.classList.add('matched');
                 card2.classList.add('matched');
                 matchedPairs++;
+                levelPoints += 2;
+                totalPoints += 2;
+
                 document.getElementById('score').textContent = `Matches: ${matchedPairs}/6`;
+                document.getElementById('points').textContent = `Points: ${levelPoints}/12`;
             } else {
                 card1.classList.remove('flipped');
                 card2.classList.remove('flipped');
@@ -189,26 +209,50 @@
 
             if (matchedPairs === 6) {
                 clearInterval(gameTimer);
-                setTimeout(() => {
-                    alert('Congratulations! You won the game!');
-                }, 500);
+                if (levelPoints >= 12) {
+                    if (currentLevel < levelData.length - 1) {
+                        document.getElementById('next-level-btn').style.display = 'inline-block';
+                    } else {
+                        alert('Congratulations! You completed all levels!');
+                    }
+                } else {
+                    alert(`Not enough points! You need 12 points to complete the level. Current points: ${levelPoints}`);
+                }
             }
         }
 
         document.getElementById('start-btn').addEventListener('click', () => {
+            levelPoints = 0;
+            matchedPairs = 0;
+            document.getElementById('points').textContent = 'Points: 0/12';
+            document.getElementById('score').textContent = 'Matches: 0/6';
             createBoard();
             startGame();
         });
 
         document.getElementById('reset-btn').addEventListener('click', () => {
             clearInterval(gameTimer);
+            levelPoints = 0;
             matchedPairs = 0;
+            document.getElementById('points').textContent = 'Points: 0/12';
             document.getElementById('score').textContent = 'Matches: 0/6';
             document.getElementById('timer').textContent = 'Get Ready!';
             document.getElementById('start-btn').style.display = 'inline-block';
             document.getElementById('reset-btn').style.display = 'none';
             canFlip = false;
             createBoard();
+        });
+
+        document.getElementById('next-level-btn').addEventListener('click', () => {
+            currentLevel++;
+            levelPoints = 0;
+            matchedPairs = 0;
+            document.getElementById('points').textContent = 'Points: 0/12';
+            document.getElementById('score').textContent = 'Matches: 0/6';
+            document.getElementById('timer').textContent = 'Get Ready!';
+            document.getElementById('next-level-btn').style.display = 'none';
+            createBoard();
+            startGame();
         });
     </script>
 </body>
